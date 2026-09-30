@@ -88,7 +88,7 @@ function renderTodos() {
   } else if (activeFilter === "active") {
     emptyState.textContent = "沒有未完成的待辦事項。";
   } else if (activeFilter === "completed") {
-    emptyState.textContent = "沒有已完成的待辦事項。";
+    emptyState.textContent = "目前沒有已完成的事項；取消勾選的項目仍保留在「全部」或「未完成」清單中。";
   }
 
   visibleTodos.forEach((todo) => {
