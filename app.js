@@ -1,12 +1,63 @@
 const STORAGE_KEY = "todo-list-items";
+const THEME_STORAGE_KEY = "todo-list-theme";
 
 const todoForm = document.querySelector("#todo-form");
 const todoInput = document.querySelector("#todo-input");
 const todoList = document.querySelector("#todo-list");
 const emptyState = document.querySelector("#empty-state");
 const remainingCount = document.querySelector("#remaining-count");
+const themeToggle = document.querySelector("#theme-toggle");
+const themeIcon = document.querySelector("#theme-icon");
+const themeLabel = document.querySelector("#theme-label");
+const filterButtons = document.querySelectorAll(".filter-button");
+const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
 
 let todos = loadTodos();
+let activeFilter = "all";
+const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+
+if (savedTheme === "light" || savedTheme === "dark") {
+  document.documentElement.dataset.theme = savedTheme;
+} else {
+  document.documentElement.dataset.theme = colorScheme.matches ? "dark" : "light";
+}
+
+function getCurrentTheme() {
+  return document.documentElement.dataset.theme || (colorScheme.matches ? "dark" : "light");
+}
+
+function updateThemeButton() {
+  const isDark = getCurrentTheme() === "dark";
+  themeIcon.textContent = isDark ? "☀️" : "🌙";
+  themeLabel.textContent = isDark ? "淺色模式" : "深色模式";
+  themeToggle.setAttribute("aria-pressed", String(isDark));
+}
+
+themeToggle.addEventListener("click", () => {
+  const nextTheme = getCurrentTheme() === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = nextTheme;
+  localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  updateThemeButton();
+});
+
+colorScheme.addEventListener("change", () => {
+  if (localStorage.getItem(THEME_STORAGE_KEY) !== "light" && localStorage.getItem(THEME_STORAGE_KEY) !== "dark") {
+    document.documentElement.dataset.theme = colorScheme.matches ? "dark" : "light";
+    updateThemeButton();
+  }
+});
+
+filterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    activeFilter = button.dataset.filter;
+    filterButtons.forEach((filterButton) => {
+      const isActive = filterButton === button;
+      filterButton.classList.toggle("is-active", isActive);
+      filterButton.setAttribute("aria-pressed", String(isActive));
+    });
+    renderTodos();
+  });
+});
 
 // 從瀏覽器儲存空間讀取待辦事項，資料損壞時回到空清單。
 function loadTodos() {
@@ -26,9 +77,21 @@ function saveTodos() {
 // 重新繪製清單與未完成數量。
 function renderTodos() {
   todoList.replaceChildren();
-  emptyState.hidden = todos.length > 0;
+  const visibleTodos = todos.filter((todo) => {
+    if (activeFilter === "active") return !todo.completed;
+    if (activeFilter === "completed") return todo.completed;
+    return true;
+  });
+  emptyState.hidden = visibleTodos.length > 0;
+  if (todos.length === 0) {
+    emptyState.textContent = "還沒有任何待辦事項,新增一個吧!";
+  } else if (activeFilter === "active") {
+    emptyState.textContent = "沒有未完成的待辦事項。";
+  } else if (activeFilter === "completed") {
+    emptyState.textContent = "沒有已完成的待辦事項。";
+  }
 
-  todos.forEach((todo) => {
+  visibleTodos.forEach((todo) => {
     const item = document.createElement("li");
     item.className = "todo-item";
     if (todo.completed) {
@@ -91,3 +154,4 @@ todoForm.addEventListener("submit", (event) => {
 });
 
 renderTodos();
+updateThemeButton();
